@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>삼호동 착한가게 나눔 지도</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<style>
+:root{
+  --mint:#E4F3EC; --mint-2:#CFE9DD; --paper:#FFFFFF;
+  --ink:#3F3550; --ink-2:#6D6280; --ink-3:#9A90AC;
+  --coral:#FF8A6B; --coral-d:#F1674A; --sun:#FFC94A;
+  --leaf:#4FC3A1; --sky:#5BB8E8; --lilac:#9B8CE8; --peach:#F2A0C4;
+  --alert:#E2574B;
+  --r:16px; --r-lg:22px;
+  --sh:0 2px 0 rgba(63,53,80,.06),0 6px 18px rgba(63,53,80,.10);
+  --sh-hi:0 3px 0 rgba(63,53,80,.08),0 10px 26px rgba(63,53,80,.16);
+  --sans:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic','맑은 고딕',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:var(--sans);background:var(--mint);color:var(--ink);
+  -webkit-font-smoothing:antialiased;overflow:hidden}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+input{font:inherit}
+:focus-visible{outline:3px solid var(--sun);outline-offset:2px;border-radius:8px}
+
+/* ---- 스티커 간판 ---- */
+.plate{display:inline-block;padding:.55rem 1.15rem;background:var(--coral);color:#fff;
+  border-radius:16px;font-weight:900;letter-spacing:-.03em;font-size:1.65rem;
+  transform:rotate(-2.2deg);box-shadow:0 3px 0 var(--coral-d),0 6px 14px rgba(241,103,74,.3)}
+.brand{flex-wrap:wrap;row-gap:.3rem}
+.logo-mascot{height:54px;width:auto;display:block;filter:drop-shadow(0 3px 4px rgba(63,53,80,.18));
+  transition:transform .2s ease}
+.logo-mascot:hover{transform:rotate(-4deg) scale(1.06)}
+.brand-text{display:flex;flex-direction:column;gap:.2rem}
+.mini-badge{display:flex;align-items:center;gap:.5rem;background:#fff;border-radius:999px;
+  padding:.35rem .8rem .35rem .35rem;box-shadow:var(--sh);margin:0 0 .6rem}
+.mini-badge img{height:34px;width:auto;display:block;border-radius:50%}
+.mini-badge span{font-size:.68rem;font-weight:800;color:var(--ink-2)}
+[hidden]{display:none!important}
+
+#app{display:grid;grid-template-rows:auto 1fr;height:100%}
+header{display:flex;align-items:center;gap:1rem;flex-wrap:wrap;padding:.75rem 1.1rem;
+  background:var(--paper);box-shadow:0 2px 14px rgba(63,53,80,.08);z-index:5;position:relative}
+.brand{display:flex;align-items:center;gap:.6rem}
+.brand .sub{font-size:.72rem;color:var(--ink-3);font-weight:600}
+.stats{display:flex;gap:.45rem;margin-left:auto;flex-wrap:wrap}
+.stat{background:var(--mint);border-radius:999px;padding:.3rem .75rem;display:flex;align-items:center;gap:.35rem}
+.stat b{font-size:.88rem;font-weight:900;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.stat span{font-size:.68rem;color:var(--ink-2);font-weight:600}
+.hdr-btns{display:flex;gap:.3rem;flex-wrap:wrap}
+.tbtn{padding:.4rem .8rem;border-radius:999px;font-size:.76rem;font-weight:700;
+  color:var(--ink-2);background:var(--mint);transition:transform .12s,box-shadow .12s}
+.tbtn:hover{transform:translateY(-1px);box-shadow:var(--sh);color:var(--ink)}
+.tbtn:active{transform:translateY(1px)}
+.tbtn.on{background:var(--ink);color:#fff}
+.tbtn.hot{background:var(--sun);color:#5A4200;box-shadow:0 2px 0 #E0A800}
+
+main{display:grid;grid-template-columns:340px 1fr;min-height:0;gap:.65rem;padding:.65rem}
+aside{display:flex;flex-direction:column;min-height:0;background:var(--paper);
+  border-radius:var(--r-lg);box-shadow:var(--sh);overflow:hidden}
+#mapwrap{position:relative;background:var(--mint-2);border-radius:var(--r-lg);
+  box-shadow:var(--sh);overflow:hidden}
+#map{position:absolute;inset:0;background:var(--mint-2)}
+
+.tools{padding:.8rem .8rem .6rem;display:flex;flex-direction:column;gap:.55rem;
+  border-bottom:2px dashed var(--mint-2)}
+#q{width:100%;padding:.6rem .9rem;background:var(--mint);border:none;border-radius:999px;
+  color:var(--ink);font-weight:600}
+#q::placeholder{color:var(--ink-3);font-weight:500}
+.chips{display:flex;flex-wrap:wrap;gap:.3rem}
+.chip{padding:.3rem .6rem;border-radius:999px;font-size:.72rem;font-weight:700;
+  color:var(--ink-2);background:var(--mint);display:flex;align-items:center;gap:.28rem}
+.chip:hover{box-shadow:var(--sh)}
+.chip.on{color:#fff;background:var(--ink)}
+.chip .sw{font-size:.85rem;line-height:1}
+.chip.alert.on{background:var(--alert)}
+.count{font-size:.68rem;color:var(--ink-3);font-weight:600;padding-left:.2rem}
+
+#list{flex:1;overflow-y:auto;overscroll-behavior:contain;padding:.5rem}
+.row{width:100%;text-align:left;display:block;padding:.6rem .7rem;border-radius:var(--r);
+  margin-bottom:.35rem;background:#fff;transition:transform .12s,box-shadow .12s}
+.row:hover{transform:translateY(-1px);box-shadow:var(--sh);background:#FFFDF7}
+.row.sel{background:#FFF4EF;box-shadow:0 0 0 2px var(--coral)}
+.row.next{box-shadow:0 0 0 2px var(--sun)}
+.row .n{font-weight:800;font-size:.88rem;letter-spacing:-.02em;display:flex;align-items:center;gap:.3rem;flex-wrap:wrap}
+.row .n .em{font-size:1rem}
+.row .a{font-size:.71rem;color:var(--ink-3);margin-top:.15rem;line-height:1.4;font-weight:500}
+.row .m{margin-top:.4rem;display:flex;align-items:center;gap:.45rem}
+.gauge{flex:1;height:6px;background:var(--mint);border-radius:99px;overflow:hidden}
+.gauge i{display:block;height:100%;border-radius:99px}
+.row .amt{font-size:.66rem;color:var(--ink-2);font-weight:700;white-space:nowrap}
+.badge{font-size:.6rem;padding:.1rem .38rem;border-radius:999px;font-weight:800}
+.badge.err{background:#FFE3E0;color:#B93A2E}
+.badge.out{background:var(--mint-2);color:var(--ink-2)}
+.badge.co{background:#E6E1FB;color:#5B4CA8}
+.nopin{font-size:.6rem;font-weight:800;color:#B07A00;background:#FFF0C7;border-radius:999px;padding:.1rem .38rem}
+
+/* ---- 말풍선 마커 ---- */
+.pin{position:relative;white-space:nowrap}
+.bub{display:flex;align-items:center;justify-content:center;
+  width:var(--d);height:var(--d);border-radius:50%;background:var(--c);
+  border:3px solid #fff;box-shadow:0 3px 8px rgba(63,53,80,.3);
+  font-size:calc(var(--d) * .48);line-height:1;position:relative}
+.tail{position:absolute;left:50%;top:calc(var(--d) - 2px);transform:translateX(-50%);
+  width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;
+  border-top:8px solid #fff}
+.star{position:absolute;right:-5px;top:-6px;font-size:12px;font-style:normal;filter:drop-shadow(0 1px 1px rgba(0,0,0,.2))}
+.pin.err .bub{border-color:#FFD9D4;box-shadow:0 0 0 3px rgba(226,87,75,.45),0 3px 8px rgba(63,53,80,.3)}
+.pin.approx .bub{border-style:dashed}
+.pin .lbl{position:absolute;left:50%;top:calc(var(--d) + 8px);transform:translateX(-50%);
+  margin-top:2px;font-size:11px;font-weight:800;color:var(--ink);background:#fff;
+  padding:2px 7px;border-radius:999px;box-shadow:0 2px 6px rgba(63,53,80,.22);display:none}
+.pin.show .lbl{display:block}
+.pin.sel .bub{animation:pop .45s ease}
+.pin.sel .lbl{display:block;background:var(--ink);color:#fff}
+@keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.35)}100%{transform:scale(1.12)}}
+.pin.sel .bub{transform:scale(1.12)}
+.leaflet-div-icon{background:none;border:none}
+.leaflet-container{font-family:var(--sans);background:var(--mint-2)}
+.leaflet-control-attribution{font-size:9px;background:rgba(255,255,255,.8);border-radius:8px 0 0 0}
+.leaflet-bar a{border-radius:10px!important;color:var(--ink)!important}
+
+.mapui{position:absolute;z-index:500;display:flex;gap:.3rem;flex-wrap:wrap}
+.mapui.tl{left:12px;top:12px;max-width:calc(100% - 24px)}
+.mapui .tbtn{background:rgba(255,255,255,.95);box-shadow:var(--sh)}
+.mapui .tbtn.on{background:var(--ink);color:#fff}
+.mapui .tbtn.hot{background:var(--sun);color:#5A4200}
+.legend{position:absolute;left:12px;bottom:24px;z-index:500;background:rgba(255,255,255,.96);
+  border-radius:var(--r);padding:.6rem .75rem;font-size:.7rem;font-weight:600;
+  color:var(--ink-2);line-height:1.85;box-shadow:var(--sh)}
+.legend b{color:var(--ink);font-weight:800}
+.legend .k{margin-right:.25rem}
+
+#card{position:absolute;right:12px;top:12px;width:290px;z-index:600;background:#fff;
+  border-radius:var(--r-lg);padding:1rem 1.05rem;display:none;box-shadow:var(--sh-hi)}
+#card.on{display:block}
+#card h3{font-size:1.05rem;font-weight:900;letter-spacing:-.03em;margin-bottom:.15rem;padding-right:1.2rem}
+#card .cadr{font-size:.74rem;color:var(--ink-3);line-height:1.45;font-weight:500}
+#card dl{display:grid;grid-template-columns:auto 1fr;gap:.32rem .7rem;margin:.8rem 0 .1rem;font-size:.76rem}
+#card dt{color:var(--ink-3);font-weight:600}
+#card dd{text-align:right;font-weight:700}
+#card .acts{display:flex;gap:.3rem;margin-top:.85rem;flex-wrap:wrap}
+#card .acts .tbtn{font-size:.72rem;padding:.34rem .7rem}
+#close{position:absolute;right:.6rem;top:.5rem;font-size:1.2rem;color:var(--ink-3);line-height:1}
+
+#pinbar{position:absolute;left:50%;top:12px;transform:translateX(-50%);z-index:700;display:none;
+  background:var(--sun);color:#5A4200;padding:.6rem 1rem;border-radius:var(--r);
+  box-shadow:var(--sh-hi);align-items:center;gap:.7rem;max-width:calc(100% - 24px);flex-wrap:wrap}
+#pinbar.on{display:flex}
+#pinbar .who{font-weight:900;letter-spacing:-.02em}
+#pinbar .sub2{font-size:.7rem;opacity:.8;display:block;font-weight:600}
+#pinbar .tbtn{background:rgba(255,255,255,.75);color:#5A4200}
+#map.picking{cursor:crosshair}
+
+#empty{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);z-index:450;
+  display:none;text-align:center;background:#fff;border-radius:var(--r-lg);
+  padding:1.4rem 1.5rem;max-width:330px;line-height:1.6;box-shadow:var(--sh-hi)}
+#empty.on{display:block}
+#empty .big{font-size:2.2rem;display:block;margin-bottom:.3rem}
+#empty b{font-size:.94rem;font-weight:900}
+#empty p{font-size:.76rem;color:var(--ink-2);margin-top:.45rem;font-weight:500}
+
+#start{position:absolute;inset:0;z-index:820;background:rgba(228,243,236,.97);display:none;
+  flex-direction:column;align-items:center;justify-content:center;gap:.5rem;padding:1.4rem;text-align:center}
+#start.on{display:flex}
+#start .big{font-size:2.4rem}
+#start h2{font-size:1.05rem;font-weight:900;letter-spacing:-.03em}
+#start .lead{font-size:.78rem;color:var(--ink-2);font-weight:500;max-width:400px;line-height:1.65;margin-bottom:.5rem}
+.ways{display:flex;flex-direction:column;gap:.5rem;width:min(430px,100%)}
+.way{display:flex;gap:.7rem;align-items:flex-start;text-align:left;background:#fff;
+  border-radius:var(--r);padding:.75rem .85rem;box-shadow:var(--sh);transition:transform .12s,box-shadow .12s}
+.way:hover{transform:translateY(-2px);box-shadow:var(--sh-hi)}
+.way .ico{font-size:1.5rem;line-height:1.1}
+.way b{display:block;font-size:.86rem;font-weight:900}
+.way small{display:block;font-size:.72rem;color:var(--ink-2);font-weight:500;line-height:1.5;margin-top:.12rem}
+.way .tag{font-size:.62rem;font-weight:800;border-radius:999px;padding:.1rem .45rem;margin-left:.3rem}
+.tag.best{background:#DFF4EA;color:#1E8C68}
+.tag.warn{background:#FFF0C7;color:#B07A00}
+#keyrow{display:none;gap:.35rem;width:min(430px,100%);margin-top:.2rem}
+#keyrow.on{display:flex}
+#keyrow input{flex:1;padding:.55rem .8rem;border:2px solid #fff;border-radius:999px;background:#fff;font-size:.8rem}
+#pinbar .cnt{background:rgba(255,255,255,.8);border-radius:999px;padding:.12rem .5rem;font-size:.7rem;font-weight:900}
+#prog{position:absolute;inset:0;z-index:800;background:rgba(228,243,236,.96);display:none;
+  flex-direction:column;align-items:center;justify-content:center;gap:.65rem;padding:1.5rem;text-align:center}
+#prog.on{display:flex}
+#prog .big{font-size:2.4rem;animation:hop 1.1s ease-in-out infinite}
+@keyframes hop{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+#bar{width:min(320px,80%);height:10px;background:#fff;border-radius:99px;overflow:hidden;box-shadow:inset 0 1px 3px rgba(63,53,80,.12)}
+#bar i{display:block;height:100%;width:0;border-radius:99px;
+  background:linear-gradient(90deg,var(--sun),var(--coral));transition:width .2s}
+#ptxt{font-size:.85rem;font-weight:800}
+#psub{font-size:.72rem;color:var(--ink-2);max-width:400px;line-height:1.65;font-weight:500}
+
+#sheetview{display:none;position:absolute;inset:0;background:#fff;color:#333;overflow-y:auto;padding:2rem 2.2rem;z-index:900}
+#sheetview.on{display:block}
+#sheetview h2{font-size:1.4rem;font-weight:900;letter-spacing:-.04em;margin-bottom:.2rem;color:var(--ink)}
+#sheetview .meta{font-size:.76rem;color:#777;margin-bottom:1.2rem}
+#sheetview table{width:100%;border-collapse:collapse;font-size:.78rem}
+#sheetview th{text-align:left;background:var(--ink);color:#fff;padding:.45rem .55rem;font-weight:800}
+#sheetview th:first-child{border-radius:10px 0 0 0}
+#sheetview th:last-child{border-radius:0 10px 0 0}
+#sheetview td{padding:.38rem .55rem;border-bottom:1px solid #EFEBF4;vertical-align:top}
+#sheetview tr.grp td{background:var(--mint);font-weight:900;color:var(--ink);padding-top:.6rem}
+#sheetview .num{text-align:right;white-space:nowrap}
+@media print{
+  body{overflow:visible;background:#fff}header,aside,#mapwrap>*:not(#sheetview){display:none!important}
+  main{grid-template-columns:1fr;padding:0;gap:0}#sheetview{position:static;padding:0;box-shadow:none}
+  #mapwrap{box-shadow:none;border-radius:0}
+  #sheetview th{background:#3F3550!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+@media (max-width:860px){
+  main{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) 44vh}
+  aside{order:2}
+  #card{width:auto;left:12px}
+  .stats{gap:.3rem}.stat span{display:none}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="brand">
+      <img class="logo-mascot" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAANAAAACiCAMAAAAHkLOMAAABIFBMVEXe1N1akqad0eRXstegqK4fNF7Up6sipNrcUouaWVPYImwwYolfMC/SqWMrVnNrWVCurq4gh6tRZZDWWl6kjGdiomnT09OaQzhWRDnuss/w2qXt7e0iIyGYr8jppCluxN+rzKx2dnaNMS/uxG0jbC3wtvArhzYYNIFlPUGEfoHRpKTv7+8yjUAA/wB8x4n/AADeO4D/AP/U1KoAAAD9/f0mirICAgICnOH+/v4GJ3PmF2wEmdorKCkyNDTWW1oAHGjr6Ov6+fm7mmjCm2j08/SVKilMNjN1dXXY8vf39/fYGGfV2Nmsqar29fbp6emGhoauuM2XmJjn5uctWGtJSEf09PQtd5QwkrVTaJFoaGj09PQrRlIVFRUTodhXVlTjDWUPSNgpAAAAYHRSTlP/////////////////////A///////DP////9X//////8C////Bf////8FlP8B/wH/AQYA/v///wL//////////8///1P/////rv///44w////FP//cP////8x//////9JZ6KzAAATVUlEQVR42u2cCXfayLLHW0ICYzBbbIbYkMRJ5s5y71stxrJpTYTtEcZsZjdgk+//LV5Vt3aEEJ7knjdzVGfsGMFA/6iqf1dXN5CLv5mRGCgGioFioBgoBoqBYqAYKAaKgWKgGCgGioFioBgoBoqBYqAYKAaKgWKgGCgGioFioBgoBoqBYqAYKAaKgWKgGOg7Aamq+ncCYjSqy/7iQDD+Qn+0QfiXBVIvlu2morR7YO02/DPtc8q/KJB6MVX81j77KxERH8+dEmDtPsRd4d8Uen8ydT1AhYs+A9A3kJb2a313mj+ptcTjn34TRz/QtFa321qs14uB1OFE07vlsvzdNQKfulBmVnhl6pJNni4dtKimTdaL1kKjtNWx/dTs3fW/J5J6MZo2m+ZrNXuj1xARNw97po62UJRWC8OOEKUz1OjQHXzN6ejbI1l50/fEebP/inwiznOO2Hsj0Ul3qOiD1qCrS62FpOiL5+6GRnxTJOe52t4X6r1iKnSA+LN16VofIkBHGi6GSqc1AHfRVmswlHQf0jf00OhsOu31/tn2a1Fv2ptOz/rlV3jIFGzpGWLNyhp9gMEHAbemlFaptl50baje+SuImPbj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" alt="삼호동 캐릭터 로고">
+      <div class="brand-text">
+        <span class="plate">삼호동 나눔 지도</span>
+        <span class="sub">울산 남구 삼호동에서 매달 마음을 보태는 착한가게들 🏠</span>
+      </div>
+    </div>
+    <div class="stats">
+      <div class="stat">🏠<b id="s-n">–</b><span>참여 가게</span></div>
+      <div class="stat">🧺<b id="s-c">–</b><span>업종</span></div>
+      <div class="stat">🌟<b id="s-y">–</b><span>최장 참여</span></div>
+      <div class="stat">🎉<b id="s-w">–</b><span>올해 새로</span></div>
+    </div>
+    <div class="hdr-btns">
+      <button class="tbtn on" id="tab-map">지도</button>
+      <button class="tbtn" id="tab-sheet">명단·인쇄</button>
+      <button class="tbtn" id="btn-imp" hidden>좌표 불러오기</button>
+      <button class="tbtn hot" id="btn-dist" hidden>📦 배포용 파일 만들기</button>
+      <button class="tbtn" id="btn-exp" hidden>좌표 내보내기</button>
+      <button class="tbtn" id="btn-reset" hidden>위치 초기화</button>
+    </div>
+  </header>
+
+  <main>
+    <aside>
+      <div class="tools">
+        <div class="mini-badge"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAJcAAABmCAMAAADxj/P3AAABIFBMVEUWFxbr3OAPDg0AAABlY2Nl0OaU0Z6v1V7///90dHS61Tbuph1j5vXWr6v52aRiUSo1SE5ayuqolpdcyeen114kJB9Vrvb8/AGXZxiQ0MdHOjDE3zU4PEKNdWqfkmeW1ZmUz5opc4sF+fyt02CnmjK03S9//3/h2kxbrK29vsA+x/N/f/+s0lk8QjhWlJtLstIVbm4ziaZmiVulrKW61DIA/wB0dA9//wCqqlW50zI8stdoERFXe4d/vyp/3berqx3cusP//38AAP9+yrqazMUtTEUaQU0AVao/v78/v/9/P398jiV/zbu/f3+n37uA4ev/AADV8Ej//6oAAABHSEr9/f01NzbV1tgoKCjIyMpVy/OWlpanqKiIiIgAAAC2t7hHoLanAAAAYHRSTlPo/qRe+Pr7+gEC+/8R/v32/Fn+pBgPCAH//vb7//39Hpj9Aaj6HQL/Bf7+AmX9/v4D9foDowECAgNr/gP/BBgF/wIByRZrrwMEBAT/YgRAkwFVAwD+/v3+/f78/v7+Lf4JUXjfAAALRElEQVR42u2bCXvTSBKG+xKxkzg+EseJSRwCOQj3wOwAwwwDs7P3vZLV3WlJ/f//xVa1pES2ZVmJ/RCeZ2nAmBDs119Vf1V9QPyvc5BvXN+4vnH9H3E9fPiVcf36dHdz8+mvQAZPdptfCdfTzVyvzfwLzbvn2nyMD93u9va258FDt4t0m5t3y/X0IUJ5l971uLzcRrTNh3fItQvvv32JLMUBf97edH95N1yNh47qsmQA2a7/p7vhguTullOlonV9P7kDrk0Qy5uP9fKlt80CBmSc8C/I1ZzA8vKn2RPvRadz/FJQqxKfacG/GFfD393OYTDPu/nY9jC2XqcnBRFSagJcMkxWzzVouvG7ya8+/rjt5dp43Qm3cjO0YygVodQyYkxTy/zmKrkG73YGVwodnV2zPfa391Mu77K7i1a/mw9H5h3HVFNhJTwQLalIVqjX53f4uJMNfP7mLM/5bmainoce+nRCL/hK9ztBtdRaQiSVlaDayrg+gzqnz549WsvGo2dHb0A1JGs0Pv5+P7P3Xf8vM87efOUnQiIUjjgCRLIirrdAtXPFhOMejAdH8KZnEMW/X2P9uXxaECCKQLJIaqt1RSBvxAVRO52gysAc2VHjcS7X7pxq08RZSGNL5U+ayljTmK+Aa/DWP/1+fa2MKyX7eC/l6vqv5r0Gj6SJI2NMFFkD03IFXDAF36+fr63NAbv34LcH+45r238890U4mKo1NopMHEfCzneK2lxv/Z+/v7++Pp8Lx34ql8/n6iAopLwcWzOmxlK9NNcAYghYBa5HMCapMq7Hfp/MfVkiNcTxhYnwhwSuxlJcgx9SrPXcHVLn2tl59qDIhVj/wprc90vf0CW+joy2pmdsbCRbMr8GfooFYOdrz3aySuRc/6hI5u17UI4Z4TwpJ4PEl5GhOqZjAw5GluM69d/nWI5q8O7MMQ3OdprXZJj2L8JYECKiWLDSHOMxhcko4gjy3mi9nF6QXCkVzMdTiN5gIjZHGdkL0REi+ISVeQyDxmVvmqSJr421UWyXy/vB28F6Ktf9tR3/dDBj41CJ/vn6uei1KI4xsWM3SqMElQidS2icj8v5xC95FO+v7/g/l31HvwHGRMcplg3GY+nAJGs2ZifkBUYZf0L6LxPHgf/L/fsp2Gk5ljPMOBafEAuHULH73fCZCukqEVQgrcEnzDJ+/4P/n5P283Vgew/SzbdyJnKssSEmfUKmJiUYxT7Mx8jGFrKMiqXqUJ8RQtbvn5z0+xXfhZHs2bF2Ob+vtUXG6YYBuKwESzVuPi7ZTzD1XLX/Bmys4puSIUxEEikBNFF7dHLStmWBRAMbYxzpBWb/Mv0XU2EIUCpUrM/nfkAWRYQzIsYayvHG+fnoxLrMb0xNOG6kK0I2MhVlqAYXJyFwKXwgSrH56YU+H2NuBRcn53vnGxFGdKbD4rHEMDo0u0wfzYAoVMgFv1Tlmo8wzC6Yaiej8/ONnsv8IJk2VpiPEvoJCGbFCpLUkEupIEeryLAmI/1EpL7VPtnYOBm555TMGL6xaSRpsMT6EeVSIiDCRbJqayGBvySpPYhRrxfJzPVZozHZgV3E1gWyIr0WcxEXPkCDh+othdQsxjMjmsz9ADowsFWQK+a314sDUihUgFGcTvqyrpSbWTAz8e8EGL0AuUxVGBdyoUkohYEsJhduxmz6nU5SV7FiIZL7oFZlcazDBRYhlMJokqSZefYuPz5mfnL8IytZ+XACM21MJ8AsJGbjqmO1sBaCMIpkCS40LwHJFT4vWkSfeMc8OfbIHCuDIUwRjQY87V9dIYJFt5Z2xnJvyKXQJxREMYE3xGrEeMK/847ZsddJKuu4LJDFLP3eBhQiLaWulqsGFxFIFWKRUWGAoxMqQn70jo9BtHIrg4HGMUEms84aOmmQixrmL8cFeoFHKKIOgsIIXz65fOJ9xys36YBsNC6SwXrE7Z1o3JlrLMUFLhG6kfHkYOLyyQIutwfMiS5OAA2rkhC3c8LEX1ovEaicpkPyp21xuZDLacbiKdfA+UDnLJduwIUmcR0/RfJnw58uvVKjqONojsxfyr+uQpiOK8EA7InXWViZIJg8KAMDt+03l6lDnUK2h0F4JVgwhFAyv8aJT7liWAZuu+/b6JOiVjAKkYQce9mptV6fA7ZE/8VVQS2gisKATIS13v5GWTkvWS7V5kqKEOCmYBrBxFB1Dnv8N2+YLOOKb7semtAmdHGcHAesnmBJaSQ1v51ePCykfNg5UFNq1Q+kz/SMU0DXwfy/3oaroI4a7g3D8CAvRuHNAuk3ZgVrtSg2/x9uzlVM+gOysbGxt9fO3IzkZqt4PS6f0RnBWq3DebZfycUK8eoM99obOPYckFBZqoW8HhYP6KznU9oSLLkx12TWb2y09xAMRMSlG0iGcob1Eh9aHlqS90GL9oa8ZMuziitRE44AUE6y0E3MMKuV9bgYNl1lxsoOKT0srLOazcVcfIIr3HMJBqp1ACuK88anThyZodB0zSYYwUaoVxZMUs8lMPFdegHY3gEpGFmdvIe3jnolggmOLT6DYLaCVPaEsZtyBUOX9kCnsjjW9QkSaWN0BF19+boS+m1IMxdM0uqlxfwGXGovnY8u8W/gqySi0sQ2tlYaR0Y/0RQrTyZc20GasYQf0la6OVA/vwBMDWFGtjfahU5/cdoDFiyuLYLJkETOtyg2+/xqFsLvfAhpFhDQjd9wPjoTO8D2lRzcoG4TSyVqlR0jcCKsbrUMZvqEOaTBpK2sxajgavZJUDoKWB22qB+xFLXC/ILVP2qR8KFb5ZYs1CGK+ecs5UrStQw00cGCQarlShSqZSJqYOD5fwPU6AdU9P3+7LZ3Muxdvd4s17991mbZgnkR1gLz4qGmMBcjiKFMT10amEyBA5wdHwrFskyv9pbgnLVHW1ujzgK5FpREsAYb4+mZ0bhhn70tcC2exGVf22oND1tbMEbVgQxV1U4dF3j2H+F5Nu4OyqtbCXO5PlRz8REybbWgbpFqLgBjyfxKDWoJI2VsJCh2fehyS71gDYRQQ4x2UgV2oJTqhOVkCdQebXQP8h3yPobUl1eLjNvG0U/aozwFuZrPpaALU6pUMx5e4A0Og2rFkPxxVNhNvTVXemnsBycemwsWigC3XsOSaGIMdazjyCW8sPGF1qTfWJrLL9jLPLCO260DLtxShErOC9YN3ZamPZiJWBgpVu3iGcIyXBPilcWQqHTzXAFZehqSk/EwLT2xs4dIWNyqL675V8QFYNOSHRCe4A5UgLvoWTCfZ6cOPMD9032X6uAR1JpYS1lcWa+Kyx3GFKpiqNKLi9lxA0xKl/2pXuhaGpLLaoGnnyLSSDixE7E6LqgBrUMXLewnsiRnaBLhVerjK71quPP+/IpXfIG5FcmpqwGr4/pvX2xtEe5Gcn1QpdwZjTsLed5J5fqDsNYd+GsZRzATcU7SqZ2uleq1tcXKT0zdRjo21qMHR789uPe6I4iK8KYe7tNDgoHpT73J6rgaKdc/Ss9MMYbt16/X8qtDLzvW3SEEr8BuUOqJ3rGf9hMr1Kus10pImnTtqwtXntfpjSWFdZkQ0oDr65mt59Xp1WeHW1uHpTu1HE+XFXl9zfUiMJER2X44tZMfB89ooF9dkV4JcS3GYWlXg8czo4Je3os/wuxIbWz6WCMZtlq9Hu0tXhbUjCP0iULMP199VOTquk+CGWanJU7w7gdtHbJV5deisfMoz3u8/N9sMk11VLJXw8ShCBhfmU9Un+b474AsvQXWxXu/uGcvWHljxmtt5K1Kr7MzdwsMr4tuLvwwjS/H5fufB0DmF+6INpZ5tVXevz9r+g+bK3qtVf+/AP+r5PK/cd3R+B8lZ2Hk0COuDwAAAABJRU5ErkJggg==" alt="이웃 사랑 로고"><span>이웃과 함께, 삼호동 🕊️</span></div>
+        <input id="q" type="search" placeholder="🔍 가게 이름이나 골목 이름으로 찾기" autocomplete="off">
+        <div class="chips" id="cats"></div>
+        <div class="chips">
+          <button class="chip alert" data-f="err" hidden>확인 필요</button>
+          <button class="chip" data-f="out">삼호동 밖</button>
+          <button class="chip" data-f="nopin" hidden>위치 미확정</button>
+        </div>
+        <div class="count" id="count"></div>
+      </div>
+      <div id="list"></div>
+    </aside>
+
+    <div id="mapwrap">
+      <div id="map"></div>
+      <div class="mapui tl">
+        <button class="tbtn on" id="ly-light">밝은 지도</button>
+        <button class="tbtn" id="ly-osm">일반 지도</button>
+        <button class="tbtn hot" id="btn-pick" hidden>📍 위치 찍기</button>
+      </div>
+      <div id="pinbar">
+        <span class="cnt" id="pb-cnt"></span>
+        <div><span class="who" id="pb-name"></span><span class="sub2" id="pb-addr"></span></div>
+        <button class="tbtn" id="pb-undo">되돌리기</button>
+        <button class="tbtn" id="pb-skip">건너뛰기</button>
+        <button class="tbtn" id="pb-kakao">주소 확인</button>
+        <button class="tbtn" id="pb-end">종료</button>
+      </div>
+      <div class="legend" id="legend"></div>
+      <div id="empty"><span class="big">🗺️</span><b>아직 표시된 가게가 없어요</b>
+        <p>인터넷이 막혀 있으면 자동 배치가 안 됩니다.<br><b>위치 찍기</b>로 하나씩 콕콕 찍거나,
+        받아둔 좌표 파일이 있으면 <b>좌표 불러오기</b>를 눌러 주세요.</p></div>
+      <div id="card">
+        <button id="close" aria-label="닫기">×</button>
+        <h3 id="c-n"></h3>
+        <div class="cadr" id="c-a"></div>
+        <dl id="c-d"></dl>
+        <div class="acts">
+          <button class="tbtn" id="c-kakao">카카오맵에서 주소 보기</button>
+          <button class="tbtn hot" id="c-fix" hidden>📍 이 가게 위치 찍기</button>
+        </div>
+      </div>
+      <div id="start">
+        <span class="big">🗺️</span>
+        <h2>가게 위치를 지도에 올려볼까요?</h2>
+        <div class="lead">엑셀에는 주소만 있어서, 지도에 찍으려면 위도·경도로 한 번 바꿔야 합니다.<br>한 번만 해두면 다음부터는 바로 열립니다.</div>
+        <div class="ways">
+          <button class="way" id="w-pick"><span class="ico">📍</span><span>
+            <b>직접 콕콕 찍기<span class="tag best">가장 정확</span></b>
+            <small>가게 이름과 주소가 하나씩 뜨면 지도에서 클릭. 65곳에 10분쯤 걸립니다.</small></span></button>
+          <button class="way" id="w-kakao"><span class="ico">🔑</span><span>
+            <b>카카오로 자동 찾기<span class="tag best">빠름</span></b>
+            <small>카카오 REST API 키가 있으면 65곳을 1분 만에 정확히 찾습니다. 키 발급은 무료입니다.</small></span></button>
+          <button class="way" id="w-imp"><span class="ico">📂</span><span>
+            <b>좌표 파일 불러오기</b>
+            <small>이미 만들어둔 좌표 JSON이 있으면 그대로 씁니다.</small></span></button>
+          <button class="way" id="w-osm"><span class="ico">🌍</span><span>
+            <b>OpenStreetMap으로 대략 배치<span class="tag warn">부정확</span></b>
+            <small>키가 필요 없지만 국내 주소는 자주 어긋납니다. 급할 때만 쓰세요.</small></span></button>
+        </div>
+        <div id="keyrow"><input id="kkey" type="text" placeholder="카카오 REST API 키를 붙여넣기" spellcheck="false"><button class="tbtn hot" id="kgo">찾기</button></div>
+        <small id="kmsg" style="font-size:.72rem;color:var(--ink-2);font-weight:600;min-height:1em"></small>
+      </div>
+      <div id="prog">
+        <span class="big">🚶</span>
+        <div id="ptxt">동네 한 바퀴 돌면서 가게 찾는 중…</div>
+        <div id="bar"><i></i></div>
+        <div id="psub">공개 지오코더(OpenStreetMap)를 씁니다. 국내 도로명주소는 일부만 잡힐 수 있고, 못 찾은 곳은 끝난 뒤 <b>위치 찍기</b>로 직접 지정하면 됩니다.</div>
+        <button class="tbtn" id="p-stop" style="margin-top:.4rem">중단</button>
+      </div>
+      <div id="sheetview"></div>
+    </div>
+  </main>
+</div>
+
+<input type="file" id="file" accept=".json" hidden>
+<script>
+const PRISTINE={head:document.head.innerHTML, body:document.body.innerHTML};
+const STORES = /*<<DATA>>*/[{"id": 1, "name": "1번가생뒷고기", "cat": "음식점", "type": "개인", "kind": "착한가게", "start": "2019/04/22", "status": "이체중", "zip": "44632", "addr": "울산광역시 남구 북부순환도로1번길 10-15 (무거동)", "q": "울산광역시 남구 북부순환도로1번길 10-15", "lat": 35.55166, "lng": 129.263074, "src": "확정"}, {"id": 2, "name": "4도씨비어", "cat": "음식점", "type": "개인", "kind": "착한가게", "start": "2025/01/22", "status": "이체중", "zip": "44635", "addr": "울산광역시 남구 어은로 19 (무거동)", "q": "울산광역시 남구 어은로 19", "lat": 35.550992, "lng": 129.273717, "src": "확정"}, {"id": 3, "name": "coffee ya", "cat": "카페·베이커리", "type": "개인", "kind": "착한가게", "start": "2024/01/19", "status": "이체중", "zip": "44627", "addr": "울산광역시 남구 어은로 20, 1층 (무거동)", "q": "울산광역시 남구 어은로 20", "lat": 35.550832, "lng": 129.274015, "src": "확정"}, {"id": 4, "name": "곤드레산나물밥집", "cat": "음식점", "type": "개인", "kind": "착한가게", "start": "2024/10/11", "status": "이체중", "zip": "44628", "addr": "울산광역시 남구 삼호로7번길 53 (무거동)", "q": "울산광역시 남구 삼호로7번길 53", "lat": 35.551133, "lng": 129.270038, "src": "확정"}, {"id": 5, "name": "굿윌스토어밀알울산무거점", "cat": "유통·판매", "type": "법인", "kind": "착한가게", "start": "2026/02/10", "status": "이체중", "zip": "44630", "addr": "울산광역시 남구 굴화4길 6 (무거동)", "q": "울산광역시 남구 굴화4길 6", "lat": 35.554459, "lng": 129.264489, "src": "확정"}, {"id": 6, "name": "궁거랑능이백숙", "cat": "음식점", "type": "개인", "kind": "착한가게", "start": "2022/10/05", "status": "이체중", "zip": "44627", "addr": "울산광역시 남구 남산로48번길 11 (무거동)", "q": "울산광역시 남구 남산로48번길 11", "lat": 35.551113, "lng": 129.274625, "src": "확정"}, {"id": 7, "name": "궁거랑찰보리빵", "cat": "카페·베이커리", "type": "개인", "kind": "착한가게", "start": "2025/12/16", "status": "이체중", "zip": "44635", "addr": "울산광역시 남구 삼호로11번길 36, 1층 (무거동)", "q": "울산광역시 남구 삼호로11번길 36", "lat": 35.55102, "lng": 129.268658, "src": "확정"}, {"id": 8, "name": "그린바나나", "cat": "유통·판매", "type": "개인", "kind": "착한가게", "start": "2025/12/16", "status": "이체중", "zip": "44636", "addr": "울산광역시 남구 삼호로 107-1, 1층 (무거동)", "q": "울산광역시 남구 삼호로 107-1", "lat": 35.548712, "lng": 129.276103, "src": "확정"}, {"id": 9, "name": "꽃밭에서", "cat": "생활·서비스", "type": "개인", "kind": "착한가게", "start": "2023/08/25", "status": "이체중", "zip": "44626", "addr": "울산광역시 남구 와와로 69 (무거동)", "q": "울산광역시 남구 와와로 69", "lat": 35.548591, "lng": 129.280589, "src": "확정"}, {"id": 10, "name": "대성에너시스", "cat": "기타", "type": "개인", "kind": "착한가게", "start": "2016/10/07", "status": "이체중", "zip": "44641", "addr": "울산광역시 남구 삼호로 46 (무거동)", "q": "울산광역시 남구 삼호로 46", "lat": 35.549534, "lng": 129.269254, "src": "확정"}, {"id": 11, "name": "대통갈비탕", "cat": "음식점", "type": "개인", "kind": "착한가게", "start": "2023/11/14", "status": "이체중", "zip": "44628", "addr": "울산광역시 남구 남산로26번길 5-7 (무거동)", "q": "울산광역시 남구 남산로26번길 5-7", "lat": 35.552148, "lng": 129.273883, "src": "확정"}, {"id": 12, "name": "더런드리셀프빨래방 무거삼호점", "cat": "생활·서비스", "type": "개인", "kind": "착한가게", "start": "2024/12/13", "status": "이체중", "zip": "", "addr": "울산광역시 남구 삼호로 33, 1층 101호(무거동)", "q": "울산광역시 남구 삼호로 33", "lat": 35.549847, "lng": 129.267994, "src": "확정"}, {"id": 13, "name": "도감소", "cat": "음식점", "type": "개인", "kind": "착한가게", "start": "2024/10/16", "status": "이체중", "zip": "44933", "addr": "울산광역시 울주군 범서읍 굴화길 55 (굴화리)", "q": "울산광역시 울주군 범서읍 굴화길 55", "lat": 35.553693, "lng": 129.259968, "src": "확정"}, {"id": 14, "name": "도연아불피아라", "cat": "음식점", "type": "개인", "kind": "착한가게", "start": "2024/12/01", "status": "이체중", "zip": "44627", "addr": "울산광역시 남구 어은로 18 (무거동)", "q": "울산광역시 남구 어은로 18", "lat": 35.550715, "lng": 129.273937, "src": "확정"}, {"id": 15, "name": "동원광고", "cat": "생활·서비스", "type": "개인", "kind": "착한가게", "start": "2023/06/26", "status": "이체중", "zip": "44638", "addr": "울산광역시 남구 남산로 156 (무거동)", "q": "울산광역시 남구 남산로 156", "lat": 35.5471, "lng": 129.286254, "src": "확정"}, {"id": 16, "name": "등뼈식당", "cat": "음식점", "type": "개인", "kind": "착한가게", "start": "2023/06/13", "status": "이체중", "zip": "44627", "addr": "울산광역시 남구 삼호로81번길 20 (무거동)", "q": "울산광역시 남구 삼호로81번길 20", "lat": 35.551103, "lng": 129.274474, "src": "확정"}, {"id": 17, "name": "로데오", "cat": "음식점", "type": "개인", "kind": "착한가게", "start": "2025/01/22", "status": "이체중", "zip": "44635", "addr": "울산광역시 남구 어은로 5-1 (무거동)", "q": "울산광역시 남구 어은로 5-1", "lat": 35.549963, "lng": 129.273044, "src": "확정"}, {"id": 18, "name": "린나이 모든에너지", "cat": "유통·판매", "type": "개인", "kind": "착한가게", "start": "2021/02/24", "status": "이체중", "zip": "44638", "addr": "울산광역시 남구 삼호로 203 (무거동)", "q": "울산광역시 남구 삼호로 203", "lat": 35.546311, "lng": 129.285851, "src": "확정"}, {"id": 19, "name": "무공태권도", "cat": "교육", "type": "개인", "kind": "착한가게", "start": "2019/10/04", "status": "이체중", "zip": "44632", "addr": "울산광역시 남구 북부순환도로19번길 15 (무거동)", "q": "울산광역시 남구 북부순환도로19번길 15", "lat": 35.552128, "lng": 129.264149, "src": "확정"}, {"id": 20, "name": "문수골돼지국밥", "cat": "음식점", "type": "개인", "kind": "착한가게", "start": "2022/07/05", "status": "이체중", "zip": "44633", "addr": "울산광역시 남구 삼호로7번길 11, 1층 (무거동)", "q": "울산광역시 남구 삼호로7번길 11", "lat": 35.550717, "lng": 129.265757, "src": "확정"}, {"id": 21, "name": "미진돌곱창", "cat": "음식점", "type": "개인", "kind": "착한가게", "start": "2016/04/26", "status": "이체중", "zip": "44628", "addr": "울산광역시 남구 남산로26번길 3 (무거동)", "q": "울산광역시 남구 남산로26번길 3", "lat": 35.552391, "lng": 129.273162, "src": "확정"}, {"id": 22, "name": "보라매", "cat": "기타", "type": "개인", "kind": "착한가게", "start": "2016/05/24", "status": "이체중", "zip": "44628", "addr": "울산광역시 남구 북부순환도로 46 (무거동)", "q": "울산광역시 남구 북부순환도로 46", "lat": 35.552056, "lng": 129.268867, "src": "확정"}, {"id": 23, "name": "보현사", "cat": "기타", "type": "법인", "kind": "착한가게", "start": "2021/12/30", "status": "이체중", "zip": "44637", "addr": "울산광역시 남구 삼호로 157 (무거동)", "q": "울산광역시 남구 삼호로 157", "lat": 35.546778, "lng": 129.28103, "src": "확정"}, {"id": 24, "name": "본가한우곱창", "cat": "음식점", "type": "개인", "kind": "착한가게", "start": "2019/05/23", "status": "이체중", "zip": "44628", "addr": "울산광역시 남구 남산로 24 (무거동)", "q": "울산광역시 남구 남산로 24", "lat": 35.552463, "lng": 129.273308, "src": "확정"}, {"id": 25, "name": "부문상사", "cat": "유통·판매", "type": "개인", "kind": "착한가게", "start": "2020/08/14", "status": "이체중", "zip": "44635", "addr": "울산광역시 남구 삼호로23번길 12-21 (무거동)", "q": "울산광역시 남구 삼호로23번길 12-21", "lat": 35.550544, "lng": 129.268226, "src": "확정"}, {"id": 26, "name": "북경", "cat": "음식점", "type": "개인", "kind": "착한가게", "start": "2023/11/03", "status": "이체중", "zip": "44635", "addr": "울산광역시 남구 삼호로 21 (무거동)", "q": "울산광역시 남구 삼호로 21", "lat": 35.549899, "lng": 129.266603, "src": "확정"}, {"id": 27, "name": "삼호매일유통", "cat": "유통·판매", "type": "개인", "kind": "착한가게", "start": "2022/01/21", "status": "이체중", "zip": "44638", "addr": "울산광역시 남구 정광로 16 (무거동)", "q": "울산광역시 남구 정광로 16", "lat": 35.547685, "lng": 129.282801, "src": "확정"}, {"id": 28, "name": "삼호밀면", "cat": "음식점", "type": "개인", "kind": "착한가게", "start": "2025/05/14", "status": "이체중", "zip": "44635", "addr": "울산광역시 남구 삼호로37번길 13, 1층 (무거동)", "q": "울산광역시 남구 삼호로37번길 13", "lat": 35.55104, "lng": 129.268264, "src": "확정"}, {"id": 29, "name": "서울산새마을금고 삼호지점", "cat": "기타", "type": "법인", "kind": "착한기업", "start": "2026/03/06", "status": "이체중", "zip": "44635", "addr": "울산광역시 남구 어은로 9-1 (무거동)", "q": "울산광역시 남구 어은로 9-1", "lat": 35.550234, "lng": 129.273225, "src": "확정"}, {"id": 30, "name": "서울아동병원", "cat": "의료", "type": "개인", "kind": "착한가게", "start": "2024/11/08", "status": "이체중", "zip": "44629", "addr": "울산광역시 남구 북부순환도로 25 (무거동)", "q": "울산광역시 남구 북부순환도로 25", "lat": 35.55247, "lng": 129.266181, "src": "확정"}, {"id": 31, "name": "소풍날김밥", "cat": "음식점", "type": "개인", "kind": "착한가게", "start": "2024/02/22", "status": "이체중", "zip": "44626", "addr": "울산광역시 남구 와와로 75, 1층 (무거동)", "q": "울산광역시 남구 와와로 75", "lat": 35.548302, "lng": 129.281271, "src": "확정"}, {"id": 32, "name": "수암한의원", "cat": "의료", "type": "개인", "kind": "착한가게", "start": "2016/05/30", "status": "이체중", "zip": "44636", "addr": "울산광역시 남구 삼호로 109 (무거동)", "q": "울산광역시 남구 삼호로 109", "lat": 35.548671, "lng": 129.276216, "src": "확정"}, {"id": 33, "name": "스윗그레이", "cat": "카페·베이커리", "type": "개인", "kind": "착한가게", "start": "2022/09/29", "status": "이체중", "zip": "44633", "addr": "울산광역시 남구 북부순환도로 12 (무거동)", "q": "울산광역시 남구 북부순환도로 12", "lat": 35.550998, "lng": 129.265469, "src": "확정"}, {"id": 34, "name": "에반커피", "cat": "카페·베이커리", "type": "개인", "kind": "착한가게", "start": "2025/05/14", "status": "이체중", "zip": "44628", "addr": "울산광역시 남구 남산로26번길 5-9, 1층 (무거동)", "q": "울산광역시 남구 남산로26번길 5-9", "lat": 35.55211, "lng": 129.274047, "src": "확정"}, {"id": 35, "name": "오토오아시스무거점", "cat": "생활·서비스", "type": "개인", "kind": "착한가게", "start": "2021/10/06", "status": "이체중", "zip": "44636", "addr": "울산광역시 남구 눌재로 1 (무거동)", "q": "울산광역시 남구 눌재로 1", "lat": 35.548284, "lng": 129.277356, "src": "확정"}, {"id": 36, "name": "우리종합광고", "cat": "생활·서비스", "type": "개인", "kind": "착한가게", "start": "2016/06/29", "status": "이체중", "zip": "44628", "addr": "울산광역시 남구 남산로26번길 5-1, 우리종합광고 (무거동)", "q": "울산광역시 남구 남산로26번길 5-1", "lat": 35.552186, "lng": 129.273685, "src": "확정"}, {"id": 37, "name": "울산깍두기", "cat": "음식점", "type": "개인", "kind": "착한가게", "start": "2022/03/31", "status": "이체중", "zip": "44713", "addr": "울산광역시 남구 삼산로301번길 12-28 (삼산동)", "q": "울산광역시 남구 삼산로301번길 12-28", "lat": 35.541367, "lng": 129.341619, "src": "확정"}, {"id": 38, "name": "울산미즈병원", "cat": "의료", "type": "개인", "kind": "착한가게", "start": "2020/11/11", "status": "이체중", "zip": "44628", "addr": "울산광역시 남구 남산로 2 (무거동, 울산미즈병원)", "q": "울산광역시 남구 남산로 2", "lat": 35.5523, "lng": 129.270907, "src": "확정"}, {"id": 39, "name": "원라이프", "cat": "기타", "type": "개인", "kind": "착한가게", "start": "2020/08/14", "status": "이체중", "zip": "44635", "addr": "울산광역시 남구 삼호로11번길 34 (무거동)", "q": "울산광역시 남구 삼호로11번길 34", "lat": 35.55109, "lng": 129.268507, "src": "확정"}, {"id": 40, "name": "윤영민정형외과의원", "cat": "의료", "type": "개인", "kind": "착한가게", "start": "2016/05/13", "status": "이체중", "zip": "44630", "addr": "울산광역시 남구 굴화3길 5-3 (무거동)", "q": "울산광역시 남구 굴화3길 5-3", "lat": 35.555216, "lng": 129.2633, "src": "확정"}, {"id": 41, "name": "이수진수학학원", "cat": "교육", "type": "개인", "kind": "착한가게", "start": "2021/02/08", "status": "이체중", "zip": "44636", "addr": "울산광역시 남구 와와로 22, 2층 (무거동)", "q": "울산광역시 남구 와와로 22", "lat": 35.54994, "lng": 129.27574, "src": "확정"}, {"id": 42, "name": "일번지부동산공인중개사", "cat": "생활·서비스", "type": "개인", "kind": "착한가게", "start": "2022/05/20", "status": "이체중", "zip": "44629", "addr": "울산광역시 남구 굴화4길 19 (무거동)", "q": "울산광역시 남구 굴화4길 19", "lat": 35.55295, "lng": 129.264469, "src": "확정"}, {"id": 43, "name": "임꺽정숯불갈비", "cat": "음식점", "type": "개인", "kind": "착한가게", "start": "2022/11/04", "status": "이체중", "zip": "44630", "addr": "울산광역시 남구 울밀로 2902 (무거동)", "q": "울산광역시 남구 울밀로 2902", "lat": 35.554715, "lng": 129.264525, "src": "확정"}, {"id": 44, "name": "정상헌(한양태권도)", "cat": "교육", "type": "개인", "kind": "착한가게", "start": "2026/03/17", "status": "이체중", "zip": "44636", "addr": "울산광역시 남구 어은로 8, 2층 (무거동)", "q": "울산광역시 남구 어은로 8", "lat": 35.549872, "lng": 129.27339, "src": "확정"}, {"id": 45, "name": "조명1번가", "cat": "유통·판매", "type": "개인", "kind": "착한가게", "start": "2025/01/22", "status": "이체중", "zip": "44641", "addr": "울산광역시 남구 삼호로 16 (무거동)", "q": "울산광역시 남구 삼호로 16", "lat": 35.549576, "lng": 129.265946, "src": "확정"}, {"id": 46, "name": "주식회사 인기기프트", "cat": "유통·판매", "type": "법인", "kind": "착한가게", "start": "2020/06/16", "status": "이체중", "zip": "44636", "addr": "울산광역시 남구 어은로4번길 9 (무거동)", "q": "울산광역시 남구 어은로4번길 9", "lat": 35.549448, "lng": 129.274281, "src": "확정"}, {"id": 47, "name": "중화루", "cat": "음식점", "type": "개인", "kind": "착한가게", "start": "2025/12/16", "status": "이체중", "zip": "44635", "addr": "울산광역시 남구 삼호로11번길 32 (무거동)", "q": "울산광역시 남구 삼호로11번길 32", "lat": 35.551165, "lng": 129.268277, "src": "확정"}, {"id": 48, "name": "진정화로구이", "cat": "음식점", "type": "개인", "kind": "착한가게", "start": "2019/07/24", "status": "이체중", "zip": "44635", "addr": "울산광역시 남구 어은로11번길 4-15 (무거동)", "q": "울산광역시 남구 어은로11번길 4-15", "lat": 35.551116, "lng": 129.273504, "src": "확정"}, {"id": 49, "name": "청담치과", "cat": "의료", "type": "개인", "kind": "착한가게", "start": "2021/03/12", "status": "이체중", "zip": "44719", "addr": "울산광역시 남구 삼산로278번길 8, LJ타워 8층 (삼산동)", "q": "울산광역시 남구 삼산로278번길 8", "lat": 35.538482, "lng": 129.337299, "src": "확정"}, {"id": 50, "name": "청송건강원", "cat": "유통·판매", "type": "개인", "kind": "착한가게", "start": "2025/12/16", "status": "이체중", "zip": "44635", "addr": "울산광역시 남구 어은로 13-1 (무거동)", "q": "울산광역시 남구 어은로 13-1", "lat": 35.550563, "lng": 129.273431, "src": "확정"}, {"id": 51, "name": "충무동비빔칼국수", "cat": "음식점", "type": "개인", "kind": "착한가게", "start": "2026/02/03", "status": "이체중", "zip": "44617", "addr": "울산광역시 남구 대학로43번길 20 (무거동)", "q": "울산광역시 남구 대학로43번길 20", "lat": 35.540777, "lng": 129.255, "src": "확정"}, {"id": 52, "name": "치킨신드롬", "cat": "음식점", "type": "개인", "kind": "착한가게", "start": "2022/09/29", "status": "이체중", "zip": "44635", "addr": "울산광역시 남구 어은로 19 (무거동)", "q": "울산광역시 남구 어은로 19", "lat": 35.550992, "lng": 129.273717, "src": "확정"}, {"id": 53, "name": "태화강 소갈비살 참숯구이", "cat": "음식점", "type": "개인", "kind": "착한가게", "start": "2023/05/19", "status": "이체중", "zip": "44628", "addr": "울산광역시 남구 남산로26번길 11 (무거동)", "q": "울산광역시 남구 남산로26번길 11", "lat": 35.551647, "lng": 129.273557, "src": "확정"}, {"id": 54, "name": "토탈라인시스템", "cat": "기타", "type": "개인", "kind": "착한가게", "start": "2016/05/24", "status": "이체중", "zip": "44638", "addr": "울산광역시 남구 와와로 113 (무거동)", "q": "울산광역시 남구 와와로 113", "lat": 35.547046, "lng": 129.284979, "src": "확정"}, {"id": 55, "name": "파리바게뜨 울산삼호점", "cat": "카페·베이커리", "type": "개인", "kind": "착한가게", "start": "2023/11/03", "status": "이체중", "zip": "44633", "addr": "울산광역시 남구 북부순환도로 12 (무거동)", "q": "울산광역시 남구 북부순환도로 12", "lat": 35.550998, "lng": 129.265469, "src": "확정"}, {"id": 56, "name": "해정왕뽈데기찜", "cat": "음식점", "type": "개인", "kind": "착한가게", "start": "2026/07/07", "status": "이체중", "zip": "44628", "addr": "울산광역시 남구 어은로 34 (무거동)", "q": "울산광역시 남구 어은로 34", "lat": 35.551993, "lng": 129.274793, "src": "확정"}, {"id": 57, "name": "호계주택", "cat": "생활·서비스", "type": "개인", "kind": "착한가게", "start": "2023/03/08", "status": "이체중", "zip": "44638", "addr": "울산광역시 남구 남산로 124 (무거동, 동남카써비스)", "q": "울산광역시 남구 남산로 124", "lat": 35.548369, "lng": 129.283035, "src": "확정"}, {"id": 58, "name": "환이네", "cat": "음식점", "type": "개인", "kind": "착한가게", "start": "2023/10/10", "status": "이체중", "zip": "44638", "addr": "울산광역시 남구 정광로 20 (무거동)", "q": "울산광역시 남구 정광로 20", "lat": 35.548058, "lng": 129.282873, "src": "확정"}, {"id": 59, "name": "흑산도홍어", "cat": "음식점", "type": "개인", "kind": "착한가게", "start": "2023/11/06", "status": "이체중", "zip": "44628", "addr": "울산광역시 남구 남산로44번길 16-12 (삼호동)", "q": "울산광역시 남구 남산로44번길 16-12", "lat": 35.551933, "lng": 129.274106, "src": "확정"}, {"id": 60, "name": "GS25삼호중앙점", "cat": "유통·판매", "type": "개인", "kind": "착한가게", "start": "2023/04/13", "status": "이체에러", "zip": "44626", "addr": "울산광역시 남구 정광로 17 (무거동)", "q": "울산광역시 남구 정광로 17", "lat": 35.547989, "lng": 129.282483, "src": "확정"}, {"id": 61, "name": "간절곶 배꽃마을", "cat": "음식점", "type": "개인", "kind": "착한가게", "start": "2026/03/18", "status": "이체에러", "zip": "44629", "addr": "울산광역시 남구 굴화4길 27 (무거동)", "q": "울산광역시 남구 굴화4길 27", "lat": 35.552405, "lng": 129.264148, "src": "확정"}, {"id": 62, "name": "까마귀커피앤티랩", "cat": "카페·베이커리", "type": "개인", "kind": "착한가게", "start": "2023/06/09", "status": "이체에러", "zip": "44626", "addr": "울산광역시 남구 삼호로149번길 26, 1층 (무거동)", "q": "울산광역시 남구 삼호로149번길 26", "lat": 35.549281, "lng": 129.279976, "src": "확정"}, {"id": 63, "name": "스시점빵", "cat": "음식점", "type": "개인", "kind": "착한가게", "start": "2025/04/23", "status": "이체에러", "zip": "44635", "addr": "울산광역시 남구 어은로 21, 스시점빵 (무거동)", "q": "울산광역시 남구 어은로 21", "lat": 35.5511, "lng": 129.273802, "src": "확정"}, {"id": 64, "name": "오서방별난족발", "cat": "음식점", "type": "개인", "kind": "착한가게", "start": "2016/05/23", "status": "이체에러", "zip": "44641", "addr": "울산광역시 남구 남부순환도로 27 (무거동)", "q": "울산광역시 남구 남부순환도로 27", "lat": 35.547013, "lng": 129.264478, "src": "확정"}, {"id": 65, "name": "힐링", "cat": "생활·서비스", "type": "개인", "kind": "착한가게", "start": "2020/01/31", "status": "이체에러", "zip": "44635", "addr": "울산광역시 남구 삼호로57번길 8 (무거동)", "q": "울산광역시 남구 삼호로57번길 8", "lat": 35.550494, "lng": 129.270697, "src": "확정"}];
+const LSC='shg_coords_v2';
+const CENTER=[35.5495,129.2665];
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+let coords=JSON.parse(localStorage.getItem(LSC)||'{}');
+let sel=null, markers={}, pickQueue=null, pickOne=null, stopGeo=false;
+let pickTotal=0, pickHist=[];
+let filt={cat:new Set(),err:false,out:false,nopin:false,q:''};
+
+STORES.forEach(s=>{
+  s.out=/삼산동|울주군/.test(s.addr);
+  s.err=s.status!=='이체중';
+  s.year=+String(s.start).slice(0,4);
+  s.road=s.q.replace(/^울산광역시\s*/,'').replace(/^(남구|울주군\s*범서읍)\s*/,'').replace(/\s*[\d-]+$/,'').trim();
+  const c=coords[s.name]; if(c){s.lat=c.lat;s.lng=c.lng;s.src=c.src}
+});
+const YNOW=new Date().getFullYear();
+STORES.forEach(s=>{s.yrs=Math.max(0,YNOW-s.year)});
+const MAXY=Math.max(...STORES.map(s=>s.yrs))+1;
+const yrText=s=>s.yrs===0?'올해 참여':`${s.year}년부터 ${s.yrs+1}년째`;
+
+const COL={'음식점':'#FF8A6B','카페·베이커리':'#E0A458','의료':'#5BB8E8','교육':'#9B8CE8',
+  '생활·서비스':'#4FC3A1','유통·판매':'#86C34A','기타':'#F2A0C4'};
+const EMO={'음식점':'🍚','카페·베이커리':'☕','의료':'🩺','교육':'✏️',
+  '생활·서비스':'🧰','유통·판매':'🛍️','기타':'✨'};
+const CATS=[...new Set(STORES.map(s=>s.cat))].sort((a,b)=>
+  STORES.filter(s=>s.cat===b).length-STORES.filter(s=>s.cat===a).length);
+
+/* stats */
+$('#s-n').textContent=STORES.length+'곳';
+$('#s-c').textContent=CATS.length+'종';
+$('#s-y').textContent=MAXY+'년째';
+$('#s-w').textContent=STORES.filter(s=>s.yrs===0).length+'곳';
+
+/* ---------- map ---------- */
+const map=L.map('map',{center:CENTER,zoom:15,zoomControl:true,attributionControl:true});
+const LIGHT=L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+  {maxZoom:20,subdomains:'abcd',attribution:'&copy; OpenStreetMap &copy; CARTO'});
+const OSM=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+  {maxZoom:19,attribution:'&copy; OpenStreetMap'});
+LIGHT.addTo(map);
+$('#ly-light').onclick=()=>{map.removeLayer(OSM);LIGHT.addTo(map);$('#ly-light').classList.add('on');$('#ly-osm').classList.remove('on')};
+$('#ly-osm').onclick=()=>{map.removeLayer(LIGHT);OSM.addTo(map);$('#ly-osm').classList.add('on');$('#ly-light').classList.remove('on')};
+map.on('zoomend',updateLabels);
+map.on('click',e=>{ if(pickQueue||pickOne) place(e.latlng.lat,e.latlng.lng) });
+
+$('#cats').innerHTML=CATS.map(c=>`<button class="chip" data-c="${c}"><i class="sw">${EMO[c]}</i>${c} ${STORES.filter(s=>s.cat===c).length}</button>`).join('');
+$('#legend').innerHTML=CATS.map(c=>`<span class="k">${EMO[c]}</span>${c}`).join('<br>')
+  +`<br><b style="display:inline-block;margin-top:.35rem">동그라미가 클수록</b> 오래 함께한 가게 🌟`;
+$('#cats').onclick=e=>{const b=e.target.closest('[data-c]');if(!b)return;
+  const c=b.dataset.c; filt.cat.has(c)?filt.cat.delete(c):filt.cat.add(c); b.classList.toggle('on'); render()};
+$$('[data-f]').forEach(b=>b.onclick=()=>{filt[b.dataset.f]=!filt[b.dataset.f];b.classList.toggle('on');render()});
+$('#q').oninput=e=>{filt.q=e.target.value.trim().toLowerCase();render()};
+
+const visible=()=>STORES.filter(s=>
+  (!filt.cat.size||filt.cat.has(s.cat)) &&
+  (!filt.err||s.err) && (!filt.out||s.out) && (!filt.nopin||!s.lat) &&
+  (!filt.q||s.name.toLowerCase().includes(filt.q)||s.addr.toLowerCase().includes(filt.q)));
+
+/* ---------- render ---------- */
+function render(){
+  const v=visible(), have=STORES.filter(s=>s.lat).length;
+  const exact=STORES.filter(s=>s.lat&&s.src!=='도로 근사').length;
+  $('#count').textContent=`${v.length}곳 표시 · 위치 확정 ${exact} · 근사 ${have-exact} · 미지정 ${STORES.length-have}`;
+  const nextId=pickQueue&&pickQueue.length?pickQueue[0].id:null;
+  $('#list').innerHTML=v.map(s=>`
+    <button class="row${sel===s.id?' sel':''}${nextId===s.id?' next':''}" data-id="${s.id}">
+      <div class="n"><span class="em">${EMO[s.cat]}</span>${esc(s.name)}
+        ${s.kind==='착한기업'?'<span class="badge co">기업</span>':''}
+        ${s.out?'<span class="badge out">관외</span>':''}
+        ${!s.lat?'<span class="nopin">좌표없음</span>':(s.src==='도로 근사'?'<span class="nopin">대략 위치</span>':'')}</div>
+      <div class="a">${esc(s.addr)}</div>
+      <div class="m"><div class="gauge"><i style="width:${Math.max(8,(s.yrs+1)/MAXY*100)}%;background:${COL[s.cat]}"></i></div>
+        <span class="amt">${s.yrs>=10?'🌟 ':''}${yrText(s)}</span></div>
+    </button>`).join('')||`<div style="padding:1.5rem .8rem;color:#7FA298;font-size:.8rem">조건에 맞는 가게가 없습니다.</div>`;
+  drawPins(v);
+}
+$('#list').onclick=e=>{const b=e.target.closest('[data-id]');if(b)select(+b.dataset.id,true)};
+
+const pinSize=s=>26+Math.round((s.yrs/MAXY)*15);
+function drawPins(v){
+  const keep=new Set(v.filter(s=>s.lat).map(s=>s.id));
+  Object.keys(markers).forEach(id=>{if(!keep.has(+id)){map.removeLayer(markers[id]);delete markers[id]}});
+  v.filter(s=>s.lat).forEach(s=>{
+    if(markers[s.id])return;
+    const d=pinSize(s);
+    const html=`<div class="pin${s.err?' err':''}${s.src==='도로 근사'?' approx':''}" style="--c:${COL[s.cat]};--d:${d}px">`
+      +`<span class="bub">${EMO[s.cat]}${s.yrs>=10?'<i class="star">🌟</i>':''}</span>`
+      +`<span class="tail"></span><span class="lbl">${esc(s.name)}</span></div>`;
+    const m=L.marker([s.lat,s.lng],{icon:L.divIcon({html,className:'',iconSize:[d,d+8],iconAnchor:[d/2,d+8]}),
+      zIndexOffset:s.err?300:0,keyboard:false});
+    m.on('click',ev=>{L.DomEvent.stopPropagation(ev);select(s.id,false)});
+    m.addTo(map); markers[s.id]=m;
+  });
+  updateLabels();
+}
+function updateLabels(){
+  const on=map.getZoom()>=17;
+  Object.entries(markers).forEach(([id,m])=>{
+    const el=m.getElement()&&m.getElement().querySelector('.pin'); if(!el)return;
+    el.classList.toggle('show',on); el.classList.toggle('sel',+id===sel);
+  });
+}
+function fitAll(){
+  const p=STORES.filter(s=>s.lat&&!s.out);
+  if(p.length>1) map.fitBounds(L.latLngBounds(p.map(s=>[s.lat,s.lng])).pad(.08));
+  else if(p.length===1) map.setView([p[0].lat,p[0].lng],17);
+}
+
+/* ---------- detail ---------- */
+function select(id,pan){
+  sel=id; const s=STORES.find(x=>x.id===id); render();
+  $('#card').classList.add('on');
+  $('#c-n').textContent=EMO[s.cat]+' '+s.name;
+  $('#c-a').textContent=s.addr+(s.zip?` (${s.zip})`:'');
+  $('#c-d').innerHTML=`
+    <dt>업종</dt><dd>${s.cat}</dd>
+    <dt>구분</dt><dd>${s.kind} · ${s.type}</dd>
+    <dt>참여 시작</dt><dd>${s.start.replace(/\//g,'.')}</dd>
+    <dt>함께한 기간</dt><dd>${yrText(s)}</dd>
+    <dt>상태</dt><dd style="color:${s.err?'var(--alert)':'inherit'}">${s.err?'확인 필요':'정상'}</dd>
+    <dt>지도 위치</dt><dd>${s.lat?(s.src==='도로 근사'?'대략 위치':'확정'):'미확인'}</dd>`;
+  if(pan&&s.lat){map.setView([s.lat,s.lng],Math.max(map.getZoom(),17))}
+  updateLabels();
+}
+$('#close').onclick=()=>{$('#card').classList.remove('on');sel=null;render()};
+const kakaoUrl=s=>'https://map.kakao.com/?q='+encodeURIComponent(s.name+' '+s.q);
+$('#c-kakao').onclick=()=>window.open(kakaoUrl(STORES.find(x=>x.id===sel)),'_blank');
+$('#c-fix').onclick=()=>{pickOne=STORES.find(x=>x.id===sel);pickQueue=null;showBar(pickOne)};
+
+/* ---------- 위치 찍기 ---------- */
+function roadCenter(s){
+  const same=STORES.filter(x=>x.lat&&x.road===s.road);
+  const pool=same.length?same:STORES.filter(x=>x.lat);
+  if(!pool.length) return null;
+  return [pool.reduce((a,b)=>a+b.lat,0)/pool.length, pool.reduce((a,b)=>a+b.lng,0)/pool.length];
+}
+function showBar(s){
+  $('#pinbar').classList.add('on'); $('#map').classList.add('picking');
+  $('#pb-name').textContent=EMO[s.cat]+' '+s.name;
+  $('#pb-addr').textContent=s.addr;
+  $('#pb-cnt').textContent=pickTotal?`${pickTotal-(pickQueue?pickQueue.length:1)+1} / ${pickTotal}`:'';
+  $('#card').classList.remove('on');
+  const c = s.lat?[s.lat,s.lng]:roadCenter(s);
+  if(c) map.setView(c, Math.max(map.getZoom(),17));
+}
+function endPick(){pickQueue=null;pickOne=null;$('#pinbar').classList.remove('on');$('#map').classList.remove('picking');render()}
+function place(lat,lng){
+  const s=pickOne||pickQueue[0];
+  pickHist.push({id:s.id,prev:s.lat?{lat:s.lat,lng:s.lng,src:s.src}:null});
+  s.lat=lat; s.lng=lng; s.src='직접지정';
+  coords[s.name]={lat,lng,src:'직접지정'}; save();
+  if(markers[s.id]){map.removeLayer(markers[s.id]);delete markers[s.id]}
+  if(pickOne){pickOne=null;endPick();select(s.id,false);return}
+  pickQueue.shift();
+  if(pickQueue.length){showBar(pickQueue[0]);render()} else {endPick();alert('🎉 모든 가게 위치를 다 찍었습니다!')}
+}
+function startPick(){
+  $('#start').classList.remove('on');
+  const todo=STORES.filter(s=>!s.lat||s.src==='도로 근사');
+  pickQueue = todo.length ? todo.slice() : STORES.slice();
+  pickTotal = pickQueue.length; pickHist=[];
+  pickOne=null; showBar(pickQueue[0]); render();
+}
+$('#btn-pick').onclick=startPick;
+$('#pb-skip').onclick=()=>{if(!pickQueue)return endPick();pickQueue.shift();
+  pickQueue.length?showBar(pickQueue[0]):endPick();render()};
+$('#pb-undo').onclick=()=>{
+  if(!pickHist.length||!pickQueue)return;
+  const u=pickHist.pop(), s=STORES.find(x=>x.id===u.id);
+  if(u.prev){s.lat=u.prev.lat;s.lng=u.prev.lng;s.src=u.prev.src;coords[s.name]=u.prev}
+  else{delete s.lat;delete s.lng;delete s.src;delete coords[s.name]}
+  save();
+  if(markers[s.id]){map.removeLayer(markers[s.id]);delete markers[s.id]}
+  pickQueue.unshift(s); showBar(s); render();
+};
+$('#pb-end').onclick=endPick;
+$('#pb-kakao').onclick=()=>window.open(kakaoUrl(pickOne||pickQueue[0]),'_blank');
+document.addEventListener('keydown',e=>{if(e.key==='Escape')endPick()});
+
+/* ---------- 주소 자동찾기 (키 불필요) ---------- */
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const near=(la,lo,s)=>{
+  const d=Math.hypot((la-CENTER[0])*111,(lo-CENTER[1])*91);
+  return d < (s.out?25:3.0);
+};
+async function nominatim(s){
+  const base='https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=kr&accept-language=ko&q=';
+  for(const q of [s.q, s.q.replace('울산광역시 ','울산 '), s.road+' '+s.q.split(' ').pop()+' 울산']){
+    try{
+      const r=await fetch(base+encodeURIComponent(q));
+      if(!r.ok) continue;
+      const j=await r.json();
+      if(j[0]&&near(+j[0].lat,+j[0].lon,s)) return {lat:+j[0].lat,lng:+j[0].lon,src:'OSM 주소'};
+    }catch(e){}
+    await sleep(1100);
+  }
+  return null;
+}
+async function photon(s){
+  try{
+    const r=await fetch('https://photon.komoot.io/api/?limit=1&lang=default&lat='+CENTER[0]+'&lon='+CENTER[1]+'&q='+encodeURIComponent(s.q));
+    if(!r.ok) return null;
+    const j=await r.json();
+    const f=j.features&&j.features[0];
+    if(f){const [lo,la]=f.geometry.coordinates; if(near(la,lo,s)) return {lat:la,lng:lo,src:'Photon 주소'}}
+  }catch(e){}
+  return null;
+}
+/* --- 카카오 REST API 로 정확히 찾기 --- */
+async function kakaoOne(key,s){
+  const H={headers:{Authorization:'KakaoAK '+key}};
+  let r=await fetch('https://dapi.kakao.com/v2/local/search/address.json?size=1&query='+encodeURIComponent(s.q),H);
+  if(r.status===401) throw new Error('401');
+  if(r.ok){const j=await r.json(); const d=j.documents&&j.documents[0];
+    if(d) return {lat:+d.y,lng:+d.x,src:'카카오 주소'}}
+  r=await fetch('https://dapi.kakao.com/v2/local/search/keyword.json?size=1&radius=20000&x='+CENTER[1]+'&y='+CENTER[0]+'&query='+encodeURIComponent(s.name+' '+s.road),H);
+  if(r.ok){const j=await r.json(); const d=j.documents&&j.documents[0];
+    if(d&&near(+d.y,+d.x,s)) return {lat:+d.y,lng:+d.x,src:'카카오 상호'}}
+  return null;
+}
+async function kakaoAll(key){
+  const todo=STORES.filter(s=>!s.lat||s.src==='도로 근사');
+  $('#start').classList.remove('on'); $('#prog').classList.add('on'); stopGeo=false;
+  $('#psub').innerHTML='카카오 지도 데이터로 번지까지 정확히 찾습니다.';
+  let hit=0;
+  try{
+    for(let i=0;i<todo.length;i++){
+      if(stopGeo)break;
+      const s=todo[i];
+      $('#ptxt').textContent=`${i+1} / ${todo.length} · ${s.name}  (찾음 ${hit})`;
+      $('#bar i').style.width=((i+1)/todo.length*100)+'%';
+      const r=await kakaoOne(key,s);
+      if(r){hit++;s.lat=r.lat;s.lng=r.lng;s.src=r.src;coords[s.name]={lat:r.lat,lng:r.lng,src:r.src};save()}
+      await sleep(120);
+    }
+  }catch(e){
+    $('#prog').classList.remove('on'); $('#start').classList.add('on');
+    $('#kmsg').textContent = e.message==='401'
+      ? '키가 맞지 않습니다. REST API 키인지 확인해 주세요.'
+      : '브라우저가 카카오 서버 호출을 막았습니다. 파일을 웹에 올려 열거나 직접 찍기를 써 주세요.';
+    localStorage.removeItem('shg_kakao_rest'); render(); return;
+  }
+  localStorage.setItem('shg_kakao_rest',key);
+  $('#prog').classList.remove('on'); render(); fitAll();
+  if(hit<todo.length) setTimeout(()=>{
+    if(confirm(`${todo.length}곳 중 ${hit}곳을 찾았습니다.\n못 찾은 ${todo.length-hit}곳을 직접 찍을까요?`)) startPick();
+  },300);
+}
+
+/* --- OpenStreetMap 대략 배치 (부정확) --- */
+function roadKeys(r){
+  const out=[r];
+  if(/\d+번길$/.test(r)) out.push(r.replace(/\d+번길$/,''));
+  else if(/\d+길$/.test(r)) out.push(r.replace(/\d+길$/,'길'));
+  return [...new Set(out)];
+}
+async function roadLookup(road,isOut){
+  for(const k of roadKeys(road)){
+    const q=k+(isOut?' 울산 울주군 범서읍':' 울산광역시 남구');
+    try{
+      const r=await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=kr&accept-language=ko&q='+encodeURIComponent(q));
+      if(r.ok){const j=await r.json();
+        if(j[0]&&near(+j[0].lat,+j[0].lon,{out:isOut})) return {lat:+j[0].lat,lng:+j[0].lon}}
+    }catch(e){}
+    await sleep(1100);
+  }
+  return null;
+}
+function spread(list,base){
+  const n=list.length;
+  list.forEach((s,i)=>{
+    const a=2*Math.PI*i/n, r=n===1?0:0.00024;
+    s.lat=base.lat+r*Math.sin(a); s.lng=base.lng+r*Math.cos(a)*1.22; s.src='도로 근사';
+    coords[s.name]={lat:s.lat,lng:s.lng,src:s.src};
+  });
+}
+async function autoPlace(){
+  const todo=STORES.filter(s=>!s.lat);
+  if(!todo.length){fitAll();return}
+  const roads=[...new Set(todo.map(s=>s.road))];
+  stopGeo=false; $('#prog').classList.add('on');
+  $('#psub').innerHTML='도로 단위로 대략 배치합니다. 정확한 위치는 <b>위치 찍기</b>로 클릭 한 번씩 보정하면 되고, 보정한 결과는 자동 저장됩니다.';
+  let hit=0;
+  for(let i=0;i<roads.length;i++){
+    if(stopGeo)break;
+    const road=roads[i];
+    const grp=todo.filter(s=>s.road===road);
+    $('#ptxt').textContent=`도로 ${i+1} / ${roads.length} · ${road} (${grp.length}곳)`;
+    $('#bar i').style.width=((i+1)/roads.length*100)+'%';
+    const base=await roadLookup(road,grp[0].out);
+    if(base){spread(grp,base);hit+=grp.length;save();render()}
+  }
+  $('#prog').classList.remove('on');
+  render(); fitAll();
+  $('#empty').classList.toggle('on',!STORES.some(s=>s.lat));
+  setTimeout(()=>{if(confirm('대략 배치가 끝났습니다. 이제 어긋난 위치를 직접 보정할까요?')) startPick()},300);
+}
+
+$('#p-stop').onclick=()=>{stopGeo=true};
+
+/* ---------- save / import / export ---------- */
+function save(){localStorage.setItem(LSC,JSON.stringify(coords))}
+$('#btn-exp').onclick=()=>{
+  const rows=[['가게명','업종','구분','유형','참여시작','상태','우편번호','주소','위도','경도','좌표출처']];
+  STORES.forEach(s=>rows.push([s.name,s.cat,s.kind,s.type,s.start,s.status,s.zip,s.addr,s.lat??'',s.lng??'',s.src??'']));
+  dl(new Blob(['\uFEFF'+rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\r\n')],{type:'text/csv'}),'삼호동_착한가게_좌표.csv');
+  dl(new Blob([JSON.stringify(coords,null,1)],{type:'application/json'}),'삼호동_착한가게_좌표.json');
+};
+$('#btn-dist').onclick=()=>{
+  const done=STORES.filter(s=>s.lat).length;
+  if(!done){alert('먼저 위치를 지정해 주세요.');return}
+  if(done<STORES.length && !confirm(`${STORES.length}곳 중 ${done}곳만 위치가 있습니다.\n이대로 배포용 파일을 만들까요?`))return;
+  const baked=JSON.stringify(STORES.map(s=>({id:s.id,name:s.name,cat:s.cat,type:s.type,kind:s.kind,
+    start:s.start,status:s.status,zip:s.zip,addr:s.addr,q:s.q,
+    lat:s.lat??null,lng:s.lng??null,src:s.src??null})));
+  const body=PRISTINE.body.replace(/\/\*<<DATA>>\*\/\[[\s\S]*?\];/, '/*<<DATA>>*/'+baked+';');
+  if(body===PRISTINE.body){alert('배포용 파일을 만들지 못했습니다. 원본 파일에서 다시 시도해 주세요.');return}
+  const T=t=>'<'+t+'>', C=t=>'</'+t+'>';
+  const html='<!DOCTYPE html>\n<html lang="ko">\n'+T('head')+PRISTINE.head+C('head')+'\n'+T('body')+body+C('body')+'\n'+C('html');
+  dl(new Blob([html],{type:'text/html;charset=utf-8'}),'삼호동_착한가게_지도(배포용).html');
+  setTimeout(()=>alert('📦 배포용 파일을 내려받았습니다.\n\n이 파일은 받는 사람이 그냥 열기만 하면\n바로 지도가 뜹니다. 설정도 키도 필요 없습니다.'),400);
+};
+$('#btn-imp').onclick=()=>$('#file').click();
+$('#file').onchange=async e=>{
+  const f=e.target.files[0]; if(!f)return;
+  try{
+    const j=JSON.parse(await f.text());
+    let n=0;
+    STORES.forEach(s=>{const c=j[s.name];if(c&&c.lat){s.lat=c.lat;s.lng=c.lng;s.src=c.src||'불러옴';coords[s.name]=c;n++}});
+    save(); Object.keys(markers).forEach(id=>{map.removeLayer(markers[id]);delete markers[id]});
+    render(); fitAll(); $('#start').classList.remove('on'); alert(`✅ ${n}곳의 위치를 불러왔습니다.`);
+  }catch(err){alert('좌표 파일을 읽지 못했습니다. 내보내기로 만든 JSON 파일인지 확인해 주세요.')}
+  e.target.value='';
+};
+function dl(b,n){const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=n;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000)}
+
+/* ---------- sheet ---------- */
+$('#tab-map').onclick=()=>swap(false);
+$('#tab-sheet').onclick=()=>swap(true);
+function swap(on){
+  $('#sheetview').classList.toggle('on',on);
+  $('#tab-sheet').classList.toggle('on',on);
+  $('#tab-map').classList.toggle('on',!on);
+  if(on)buildSheet(); else setTimeout(()=>map.invalidateSize(),50);
+}
+function buildSheet(){
+  const v=visible().slice().sort((a,b)=>a.road.localeCompare(b.road,'ko')||a.name.localeCompare(b.name,'ko'));
+  let h=`<h2>삼호동 착한가게 명단</h2>
+  <div class="meta">울산광역시 남구 삼호동행정복지센터 · ${v.length}곳 · 기준일 ${new Date().toLocaleDateString('ko-KR')}
+  <button class="tbtn" style="color:#0E2E28;border-color:#0E2E28;margin-left:.6rem" id="pbtn">인쇄</button></div>
+  <table><thead><tr><th>가게</th><th>업종</th><th>주소</th><th class="num">참여 시작</th><th class="num">함께한 기간</th></tr></thead><tbody>`;
+  let cur=null;
+  v.forEach(s=>{
+    if(s.road!==cur){cur=s.road;h+=`<tr class="grp"><td colspan="5">${esc(cur)} — ${v.filter(x=>x.road===cur).length}곳</td></tr>`}
+    h+=`<tr><td><b>${EMO[s.cat]} ${esc(s.name)}</b></td><td>${s.cat}</td><td>${esc(s.addr)}</td>
+      <td class="num">${s.start.replace(/\//g,'.')}</td><td class="num">${yrText(s)}</td></tr>`;
+  });
+  $('#sheetview').innerHTML=h+'</tbody></table>';
+  $('#pbtn').onclick=()=>window.print();
+}
+
+$('#w-pick').onclick=startPick;
+$('#w-imp').onclick=()=>$('#file').click();
+$('#w-osm').onclick=()=>{
+  if(confirm('OpenStreetMap은 국내 주소를 자주 잘못 찾습니다.\n대략 위치로 배치한 뒤 직접 보정하는 방식인데, 계속할까요?')){
+    $('#start').classList.remove('on'); autoPlace();
+  }
+};
+$('#w-kakao').onclick=()=>{
+  $('#keyrow').classList.add('on');
+  $('#kkey').value=localStorage.getItem('shg_kakao_rest')||'';
+  $('#kkey').focus();
+  $('#kmsg').innerHTML='카카오 개발자센터 → 내 애플리케이션 → 앱 키의 <b>REST API 키</b>를 복사해 주세요.';
+};
+$('#kgo').onclick=()=>{const k=$('#kkey').value.trim(); if(k) kakaoAll(k); else $('#kmsg').textContent='키를 입력해 주세요.'};
+$('#kkey').addEventListener('keydown',e=>{if(e.key==='Enter')$('#kgo').click()});
+
+$('#btn-reset').onclick=()=>{
+  if(!confirm('지금까지 찍은 위치를 모두 지웁니다. 계속할까요?'))return;
+  coords={}; localStorage.removeItem(LSC);
+  STORES.forEach(s=>{delete s.lat;delete s.lng;delete s.src});
+  Object.keys(markers).forEach(id=>{map.removeLayer(markers[id]);delete markers[id]});
+  render(); $('#start').classList.add('on');
+};
+
+render();
+if(STORES.some(s=>s.lat)) fitAll();
+else $('#start').classList.add('on');
+</script>
+</body>
+</html>
