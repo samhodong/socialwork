@@ -4,19 +4,23 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>삼호동 착한가게 나눔 지도</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@700;900&display=swap">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" onerror="this.onerror=null;this.href='https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css'"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>window.L||document.write('<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"><\/script>')</script>
 <style>
 :root{
-  --mint:#E4F3EC; --mint-2:#CFE9DD; --paper:#FFFFFF;
-  --ink:#3F3550; --ink-2:#6D6280; --ink-3:#9A90AC;
-  --coral:#FF8A6B; --coral-d:#F1674A; --sun:#FFC94A;
-  --leaf:#4FC3A1; --sky:#5BB8E8; --lilac:#9B8CE8; --peach:#F2A0C4;
-  --alert:#E2574B;
+  --mint:#F2E8D5; --mint-2:#E3D5B7; --paper:#FBF5E9;
+  --ink:#33240F; --ink-2:#6E5B3E; --ink-3:#9C8A6B;
+  --coral:#B4914C; --coral-d:#8A6C33; --sun:#D9B25F;
+  --leaf:#1C5E45; --sky:#1D4B77; --lilac:#5B3573; --peach:#8E2740;
+  --alert:#A33B32;
+  --gold:#C8A55E; --gold-d:#A07E3A; --gold-l:#E7D4A6; --cream:#FDF8EE;
   --r:16px; --r-lg:22px;
-  --sh:0 2px 0 rgba(63,53,80,.06),0 6px 18px rgba(63,53,80,.10);
-  --sh-hi:0 3px 0 rgba(63,53,80,.08),0 10px 26px rgba(63,53,80,.16);
+  --sh:0 2px 0 rgba(90,66,20,.07),0 6px 18px rgba(90,66,20,.13);
+  --sh-hi:0 3px 0 rgba(90,66,20,.10),0 10px 26px rgba(90,66,20,.20);
   --sans:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic','맑은 고딕',sans-serif;
 }
 *{box-sizing:border-box;margin:0;padding:0}
@@ -111,9 +115,11 @@ aside{display:flex;flex-direction:column;min-height:0;background:var(--paper);
 .star{position:absolute;right:-5px;top:-6px;font-size:12px;font-style:normal;filter:drop-shadow(0 1px 1px rgba(0,0,0,.2))}
 .pin.err .bub{border-color:#FFD9D4;box-shadow:0 0 0 3px rgba(226,87,75,.45),0 3px 8px rgba(63,53,80,.3)}
 .pin.approx .bub{border-style:dashed}
-.pin .lbl{position:absolute;left:50%;top:calc(var(--d) + 8px);transform:translateX(-50%);
+.pin .lbl{position:absolute;left:50%;top:calc(var(--d) + 8px);
+  transform:translateX(calc(-50% + var(--lx,0px)));
   margin-top:2px;font-size:11px;font-weight:800;color:var(--ink);background:#fff;
   padding:2px 7px;border-radius:999px;box-shadow:0 2px 6px rgba(63,53,80,.22);display:none}
+.pin .lbl.up{top:auto;bottom:calc(100% + 4px);margin-top:0}
 .pin.show .lbl{display:block}
 .pin.sel .bub{animation:pop .45s ease}
 .pin.sel .lbl{display:block;background:var(--ink);color:#fff}
@@ -234,7 +240,7 @@ aside{display:flex;flex-direction:column;min-height:0;background:var(--paper);
     font-size:.76rem;line-height:1.7;padding:.6rem .72rem;border-radius:14px}
   .legend.open{display:block}
   /* --- 모바일 글자 키우기 --- */
-  .pin .lbl{font-size:13px;padding:3px 9px}
+  .pin .lbl{font-size:12px;padding:3px 8px}
   #q{padding:.7rem 1rem;font-size:1.02rem}
   .chip{font-size:.84rem;padding:.38rem .72rem}
   .chip .sw{font-size:1rem}
@@ -255,6 +261,71 @@ aside{display:flex;flex-direction:column;min-height:0;background:var(--paper);
   .mapui .tbtn{font-size:.8rem;padding:.4rem .75rem}
 }
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* ================= 골드·아이보리 테마 ================= */
+body{background:linear-gradient(180deg,#F5EBD8,#EADCC1)}
+header{background:
+    linear-gradient(112deg,rgba(226,199,136,.30) 0%,rgba(226,199,136,0) 26%),
+    linear-gradient(292deg,rgba(226,199,136,.24) 0%,rgba(226,199,136,0) 30%),
+    linear-gradient(180deg,#FDF8EC,#F4EAD5);
+  border-bottom:2px solid var(--gold);box-shadow:0 2px 14px rgba(90,66,20,.12)}
+.plate{background:none;border:none;box-shadow:none;text-shadow:none;transform:none;
+  padding:0;color:#24160A;font-size:1.72rem;font-weight:900;letter-spacing:-.035em;
+  font-family:'Noto Serif KR',Batang,'바탕',AppleMyungjo,serif;line-height:1.25}
+.logo-mascot{height:62px}
+.brand .sub{color:#7B6845;font-weight:700}
+.logo-mascot{filter:drop-shadow(0 3px 4px rgba(90,66,20,.24))}
+.mini-badge{background:var(--cream);border:1px solid var(--gold-l)}
+.stat{background:var(--cream);border:1px solid var(--gold-l)}
+.tbtn{border:1px solid transparent}
+.tbtn.on{background:var(--ink);color:var(--cream)}
+.tbtn.hot{background:linear-gradient(160deg,#E4CB8C,#C9A55E);color:#4A3410;box-shadow:0 2px 0 var(--gold-d)}
+#q{border:1.5px solid var(--gold-l)}
+.chip{border:1px solid var(--gold-l)}
+.chip.on{background:var(--ink);color:var(--cream);border-color:var(--ink)}
+.tools{border-bottom:2px dashed var(--gold-l)}
+aside,#mapwrap{border:1.5px solid var(--gold-l)}
+
+/* 목록 카드 */
+.row{background:#FDF9F0;border:1px solid #EFE3CB}
+.row:hover{background:#FFFDF6}
+.row.sel{background:#F7EEDA;box-shadow:0 0 0 2px var(--coral)}
+.gauge{background:#EDE0C4}
+.badge.err{background:#F6DED8;color:#96382B}
+.badge.out{background:var(--mint-2);color:var(--ink-2)}
+.badge.co{background:#EFE3C8;color:#7A5B1E}
+.nopin{color:#8A6512;background:#F7EAC6}
+
+/* 보석 느낌 마커 */
+.bub{border:2.5px solid var(--gold);
+  background:radial-gradient(circle at 34% 28%,rgba(255,255,255,.34),rgba(255,255,255,0) 46%),var(--c);
+  box-shadow:0 3px 8px rgba(60,40,15,.42),inset 0 -3px 7px rgba(0,0,0,.30),inset 0 3px 6px rgba(255,255,255,.26)}
+.tail{border-top-color:var(--gold)}
+.pin.err .bub{border-color:#E8B0A6;box-shadow:0 0 0 3px rgba(163,59,50,.42),0 3px 8px rgba(60,40,15,.36)}
+.pin .lbl{background:var(--cream);border:1px solid #D3BA88;color:var(--ink);
+  box-shadow:0 2px 6px rgba(90,66,20,.24)}
+.pin.sel .lbl{background:var(--ink);color:var(--cream);border-color:var(--ink)}
+
+/* 지도 타일을 따뜻한 양피지 톤으로 */
+#map .leaflet-tile-pane{filter:sepia(.22) saturate(1.18) contrast(1.06)}
+#map.osm .leaflet-tile-pane{filter:sepia(.6) saturate(1.06) contrast(1.02) brightness(1.03)}
+.leaflet-container{background:var(--mint-2)}
+.leaflet-bar a{background:var(--cream)!important;color:var(--ink)!important;
+  border-bottom-color:var(--gold-l)!important}
+.leaflet-bar a:hover{background:#FFFCF3!important}
+.leaflet-control-attribution{background:rgba(253,248,238,.85)}
+
+/* 지도 위 UI */
+.mapui .tbtn{background:var(--cream);border:1px solid var(--gold-l)}
+.mapui .tbtn.on{background:var(--ink);color:var(--cream);border-color:var(--ink)}
+.legend{background:rgba(253,248,238,.96);border:1.5px solid var(--gold)}
+#lg-btn{background:var(--cream)!important;border:1.5px solid var(--gold)!important;color:var(--ink)!important}
+#card,#empty,#start{background:var(--cream);border:1.5px solid var(--gold-l)}
+#pinbar{background:linear-gradient(160deg,#E4CB8C,#C9A55E);color:#4A3410}
+#pinbar .tbtn{background:rgba(255,252,244,.8);color:#4A3410}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:#D8C49A;border-radius:99px;border:2px solid #F5EBD8}
+::-webkit-scrollbar-track{background:#F5EBD8}
 </style>
 </head>
 <body>
@@ -286,7 +357,6 @@ aside{display:flex;flex-direction:column;min-height:0;background:var(--paper);
   <main>
     <aside>
       <div class="tools">
-        <div class="mini-badge"><img id="lg-heart" alt="이웃 사랑 로고"><span>이웃과 함께, 삼호동 🕊️</span></div>
         <input id="q" type="search" placeholder="🔍 가게 이름이나 골목 이름으로 찾기" autocomplete="off">
         <div class="chips" id="cats"></div>
         <div class="chips">
@@ -302,8 +372,8 @@ aside{display:flex;flex-direction:column;min-height:0;background:var(--paper);
     <div id="mapwrap">
       <div id="map"></div>
       <div class="mapui tl">
-        <button class="tbtn on" id="ly-light">밝은 지도</button>
-        <button class="tbtn" id="ly-osm">일반 지도</button>
+        <button class="tbtn" id="ly-light">밝은 지도</button>
+        <button class="tbtn on" id="ly-osm">일반 지도</button>
         <button class="tbtn hot" id="btn-pick" hidden>📍 위치 찍기</button>
       </div>
       <div id="pinbar">
@@ -452,7 +522,7 @@ var LG_H=[
 'IjYAAAAASUVORK5CYII='
 ].join('');
 document.getElementById('lg-mascot').src='data:image/png;base64,'+LG_M;
-document.getElementById('lg-heart').src='data:image/png;base64,'+LG_H;
+{const _h=document.getElementById('lg-heart'); if(_h)_h.src='data:image/png;base64,'+LG_H;}
 </script>
 <script>
 const PRISTINE={head:document.head.innerHTML, body:document.body.innerHTML};
@@ -480,8 +550,8 @@ STORES.forEach(s=>{s.yrs=Math.max(0,YNOW-s.year)});
 const MAXY=Math.max(...STORES.map(s=>s.yrs))+1;
 const yrText=s=>s.yrs===0?'올해 참여':`${s.year}년부터 ${s.yrs+1}년째`;
 
-const COL={'음식점':'#FF8A6B','카페·베이커리':'#E0A458','의료':'#5BB8E8','교육':'#9B8CE8',
-  '생활·서비스':'#4FC3A1','유통·판매':'#86C34A','기타':'#F2A0C4'};
+const COL={'음식점':'#8E2740','카페·베이커리':'#5C3B24','의료':'#14564F','교육':'#5B3573',
+  '생활·서비스':'#1D4B77','유통·판매':'#1C5E45','기타':'#6E5320'};
 const EMO={'음식점':'🍚','카페·베이커리':'☕','의료':'🩺','교육':'✏️',
   '생활·서비스':'🧰','유통·판매':'🛍️','기타':'✨'};
 const CATS=[...new Set(STORES.map(s=>s.cat))].sort((a,b)=>
@@ -500,17 +570,17 @@ if(typeof window.L==='undefined'){
     apply:()=>stub
   });
   window.L=stub;
-  document.getElementById('map').innerHTML='<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:1.2rem;color:#6D6280;font-weight:700;font-size:.85rem;line-height:1.7">지도 그림을 불러오지 못했어요 😢<br>인터넷(와이파이/데이터) 연결을 확인하고<br>새로고침 해주세요. 가게 목록은 아래에서 볼 수 있어요!</div>';
+  document.getElementById('map').innerHTML='<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:1.2rem;color:#6E5B3E;font-weight:700;font-size:.85rem;line-height:1.7">지도 그림을 불러오지 못했어요 😢<br>인터넷(와이파이/데이터) 연결을 확인하고<br>새로고침 해주세요. 가게 목록은 아래에서 볼 수 있어요!</div>';
 }
 const map=L.map('map',{center:CENTER,zoom:15,zoomControl:true,attributionControl:true});
 const LIGHT=L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
   {maxZoom:20,subdomains:'abcd',attribution:'&copy; OpenStreetMap &copy; CARTO'});
 const OSM=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',
   {maxZoom:19,attribution:'&copy; OpenStreetMap'});
-LIGHT.addTo(map);
-$('#ly-light').onclick=()=>{map.removeLayer(OSM);LIGHT.addTo(map);$('#ly-light').classList.add('on');$('#ly-osm').classList.remove('on')};
-$('#ly-osm').onclick=()=>{map.removeLayer(LIGHT);OSM.addTo(map);$('#ly-osm').classList.add('on');$('#ly-light').classList.remove('on')};
-map.on('zoomend',updateLabels);
+OSM.addTo(map); $('#map').classList.add('osm');
+$('#ly-light').onclick=()=>{map.removeLayer(OSM);LIGHT.addTo(map);$('#map').classList.remove('osm');$('#ly-light').classList.add('on');$('#ly-osm').classList.remove('on')};
+$('#ly-osm').onclick=()=>{map.removeLayer(LIGHT);OSM.addTo(map);$('#map').classList.add('osm');$('#ly-osm').classList.add('on');$('#ly-light').classList.remove('on')};
+map.on('zoomend',updateLabels); map.on('moveend',updateLabels); map.on('resize',updateLabels);
 window.addEventListener('orientationchange',()=>setTimeout(()=>{try{map.invalidateSize()}catch(e){}},250));
 map.on('click',e=>{ if(pickQueue||pickOne) place(e.latlng.lat,e.latlng.lng) });
 $('#lg-btn').onclick=()=>{const o=$('#legend').classList.toggle('open');$('#lg-btn').textContent=o?'🗂️ 범례 닫기':'🗂️ 범례 보기'};
@@ -567,9 +637,24 @@ function drawPins(v){
 }
 function updateLabels(){
   const on=map.getZoom()>=17;
+  const sz=map.getSize(), PAD=6;
+  const bounds=map.getBounds().pad(0.25);
   Object.entries(markers).forEach(([id,m])=>{
     const el=m.getElement()&&m.getElement().querySelector('.pin'); if(!el)return;
     el.classList.toggle('show',on); el.classList.toggle('sel',+id===sel);
+    const lbl=el.querySelector('.lbl'); if(!lbl) return;
+    const shown=on||(+id===sel);
+    if(!shown||!bounds.contains(m.getLatLng())){lbl.style.removeProperty('--lx');lbl.classList.remove('up');return}
+    /* 이름표가 지도 가장자리를 넘지 않도록 좌우로 밀어 넣습니다 */
+    lbl.style.setProperty('--lx','0px');
+    const pt=map.latLngToContainerPoint(m.getLatLng());
+    const half=lbl.offsetWidth/2;
+    let dx=0;
+    if(pt.x-half<PAD) dx=PAD-(pt.x-half);
+    else if(pt.x+half>sz.x-PAD) dx=(sz.x-PAD)-(pt.x+half);
+    lbl.style.setProperty('--lx',Math.round(dx)+'px');
+    /* 아래쪽이 잘리면 이름표를 핀 위로 올립니다 */
+    lbl.classList.toggle('up', pt.y+lbl.offsetHeight+22 > sz.y-PAD);
   });
 }
 function fitAll(){
